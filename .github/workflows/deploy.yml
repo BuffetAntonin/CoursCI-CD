@@ -1,0 +1,110 @@
+name: Build, Test et Déploiement
+
+# Déclenchement manuel avec choix de l'environnement
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environnement cible'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+          - staging
+          - production
+
+# Chaque job ne peut QUE lire le contenu du dépôt (sécurité)
+permissions:
+  contents: read
+
+jobs:
+  # ==========================================
+  # JOB 1 : BUILD
+  # ==========================================
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout du code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Installation des dépendances
+        run: npm ci
+
+      - name: Build de l'application
+        run: npm run build
+
+      - name: Sauvegarder l'artefact
+        uses: actions/upload-artifact@v4
+        with:
+          name: application
+          path: dist/
+          retention-days: 1
+
+  # ==========================================
+  # JOB 2 : TEST (Matrice)
+  # ==========================================
+  test:
+    needs: build # Attend que le build réussisse
+    strategy:
+      fail-fast: false # Ne coupe pas les autres tests si un plante
+      max-parallel: 2 # Exécute max 2 jobs en même temps
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        node-version: [20, 22]
+    
+    runs-on: ${{ matrix.os }}
+    steps:
+      # On récupère le code pour avoir package.json et lancer les scripts
+      - name: Checkout du code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+
+      - name: Installation des dépendances
+        run: npm ci
+
+      # On récupère le build généré par le job 1
+      - name: Récupérer l'artefact 'application'
+        uses: actions/download-artifact@v4
+        with:
+          name: application
+          path: dist/
+
+      - name: Exécuter les tests
+        run: npm test
+
+  # ==========================================
+  # JOB 3 : DEPLOY
+  # ==========================================
+  deploy:
+    needs: test # Attend que TOUS les tests réussissent
+    runs-on: ubuntu-latest
+    # Branche ce job sur l'environnement choisi au déclenchement
+    environment: ${{ inputs.environment }} 
+    
+    steps:
+      - name: Récupérer l'artefact 'application'
+        uses: actions/download-artifact@v4
+        with:
+          name: application
+          path: dist/
+
+      - name: Afficher l'API_URL de l'environnement
+        run: echo "Déploiement en cours. L'API ciblée est -> ${{ vars.API_URL }}"
+
+      - name: Résumé du déploiement (Summary)
+        run: |
+          echo "### Déploiement terminé 🚀" >> $GITHUB_STEP_SUMMARY
+          echo "- **Cible :** ${{ inputs.environment }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **URL de l'API :** ${{ vars.API_URL }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit :** \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
