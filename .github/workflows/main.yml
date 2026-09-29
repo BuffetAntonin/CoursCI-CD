@@ -1,0 +1,36 @@
+name: CI Validation
+
+on:
+  push:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Récupérer le code
+      - name: Checkout du code
+        uses: actions/checkout@v4
+
+      # 2. Installer Node.js et 3. Mettre en place la cache npm
+      - name: Configuration de Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20' # Tu peux ajuster la version selon ton projet
+          cache: 'npm'
+
+      # 4. Installer les dépendances
+      - name: Installation des dépendances
+        run: npm ci # Utilisation de npm ci de préférence pour les environnements CI
+
+      # 5. Lancer les tests
+      - name: Exécution des tests
+        run: npm test
+
+      # 6. Écrire le statut du job et la ref du commit
+      - name: Génération du résumé (Summary)
+        if: always() # S'assure que le résumé est écrit même si les tests échouent
+        run: |
+          echo "### Résultat de la CI 🚀" >> $GITHUB_STEP_SUMMARY
+          echo "- **Statut :** ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit :** \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
