@@ -4,7 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Aucun test pour le moment\" && exit 0"
+    "test": "echo \"Aucun test pour le moment\" && exit 0",
+    "build": "mkdir dist && echo \"<h1>Mon build généré par la CI</h1>\" > dist/index.html"
   },
   "repository": {
     "type": "git",

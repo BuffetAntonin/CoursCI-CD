@@ -1,0 +1,58 @@
+name: Build et Artefact
+
+# workflow_dispatch permet de déclencher la CI manuellement depuis l'interface GitHub
+on:
+  workflow_dispatch:
+
+jobs:
+  build-project:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Récupérer le code
+      - name: Checkout du code
+        uses: actions/checkout@v7
+
+      # 2. Préparer l'environnement
+      - name: Configuration de Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      # 3. Installer les dépendances
+      - name: Installation des dépendances
+        run: npm ci
+
+      # 4. Lancer le build
+      - name: Exécution du build
+        run: npm run build
+
+      # 5. Vérifier que le dossier dist/ existe
+      - name: Vérification du dossier de build
+        run: |
+          if [ -d "dist" ]; then
+            echo "✅ Le dossier dist/ a bien été généré."
+          else
+            echo "❌ Erreur : Le dossier dist/ est introuvable."
+            exit 1 # Fait échouer le job si le dossier n'existe pas
+          fi
+
+      # 6. Sauvegarder dist/ comme artefact
+      - name: Upload de l'artefact
+        uses: actions/upload-artifact@v4
+        with:
+          name: projet-build-dist # Le nom de l'archive que tu pourras télécharger
+          path: dist/
+          retention-days: 7 # Garde l'artefact pendant 7 jours
+
+      # 7. Écrire un résumé du build
+      - name: Génération du résumé (Summary)
+        if: always()
+        run: |
+          echo "### Résumé du Build 📦" >> $GITHUB_STEP_SUMMARY
+          echo "- **Déclenché par :** @${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Branche :** \`${{ github.ref_name }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Statut du build :** ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Artefact généré :** \`projet-build-dist\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Heure (UTC) :** $(date +'\%H:\%M:\%S')" >> $GITHUB_STEP_SUMMARY
