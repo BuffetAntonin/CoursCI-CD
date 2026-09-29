@@ -10,11 +10,11 @@ jobs:
     steps:
       # 1. Récupérer le code
       - name: Checkout du code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       # 2. Installer Node.js et 3. Mettre en place la cache npm
       - name: Configuration de Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: '20' # Tu peux ajuster la version selon ton projet
           cache: 'npm'
