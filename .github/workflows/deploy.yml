@@ -55,7 +55,7 @@ jobs:
       fail-fast: false # Ne coupe pas les autres tests si un plante
       max-parallel: 2 # Exécute max 2 jobs en même temps
       matrix:
-        os: [ubuntu-latest, windows-latest]
+        os: [ubuntu-24.04, windows-latest]
         node-version: [24]
     
     runs-on: ${{ matrix.os }}
